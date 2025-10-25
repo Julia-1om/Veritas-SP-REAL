@@ -5,10 +5,10 @@ import pandas as pd
 import re
 
 # Configuração da página
-st.set_page_config(page_title="Detector de Fake News", page_icon="🤖", layout="centered")
-st.title("🤖 Detector de Fake News em Português")
+st.set_page_config(page_title="Análise de credibilidade de Fake News", page_icon="🤖", layout="centered")
+st.title("🤖 Análise de Credibilidade de Fake News em Português")
 st.write("""
-Este é um protótipo de IA treinado para identificar notícias potencialmente falsas.
+Este é um protótipo de IA treinado para analisar a correspondência de notícias potencialmente falsas.
 Digite ou cole o texto da notícia abaixo para ver a análise.
 """)
 
@@ -56,28 +56,49 @@ if st.button("Analisar Notícia 🔍", type="primary", use_container_width=True)
             # Vetoriza o texto (transforma em números)
             texto_vetorizado = vectorizer.transform([texto_limpo])
             
-            # Faz a previsão
-            previsao = model.predict(texto_vetorizado)
-            probabilidade = model.predict_proba(texto_vetorizado)
+            # Faz a previsão (probabilidades)
+            try:
+                probabilidade = model.predict_proba(texto_vetorizado)
+            except Exception as e:
+                st.error(f"Erro ao prever (predict_proba): {e}")
+                st.stop()
             
-            # Mostra os resultados
+            # Determinar índice da classe 'real' (assume que label real == 1)
+            try:
+                classes = list(model.classes_)
+                # tenta encontrar o índice da classe '1' (notícia verdadeira)
+                if 1 in classes:
+                    idx_real = classes.index(1)
+                else:
+                    # se não existir o label 1, assume que a classe com maior média de probabilidade corresponde a "real" (fallback)
+                    idx_real = 1 if len(classes) > 1 else 0
+            except Exception:
+                idx_real = 1  # fallback simples
+            
+            real_prob = float(probabilidade[0][idx_real])
+            fake_prob = 1.0 - real_prob  # binário esperado
+            
+            # Mostra os resultados com sua "trava"
             st.subheader("📊 Resultado da Análise:")
             
-            if previsao[0] == 0:
-                st.error(f"**🚫 POTENCIAL FAKE NEWS**")
-                st.progress(probabilidade[0][0])
-                st.write(f"**Confiança da análise:** {probabilidade[0][0] * 100:.2f}%")
+            # Regras de classificação com 'trava' entre 50% e 70%
+            if fake_prob > 0.8:
+                st.error("**🚫 POTENCIAL FAKE NEWS**")
+                st.progress(real_prob)  # mostra barra com prob do real (vai estar baixa)
+            elif 0.5 <= fake_prob < 0.8:
+                st.warning("**⚠️ POTENCIALMENTE REAL — verificar manualmente**")
+                st.progress(real_prob)
+                st.info("Este texto está na faixa 50%–80% — classificado como potencialmente fake (recomendado: checar fontes).")
             else:
-                st.success(f"**✅ NOTÍCIA CONFIÁVEL**")
-                st.progress(probabilidade[0][1])
-                st.write(f"**Confiança da análise:** {probabilidade[0][1] * 100:.2f}%")
-            
+                st.success("**✅ ALTA CONFIABILIDADE**")
+                st.progress(real_prob)
+                
             # Dashboard de informações
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("Probabilidade de ser Fake", f"{probabilidade[0][0] * 100:.2f}%")
+                st.metric("Correspondência com notícia Fake", f"{fake_prob * 100:.2f}%")
             with col2:
-                st.metric("Probabilidade de ser Verdadeira", f"{probabilidade[0][1] * 100:.2f}%")
+                st.metric("Correspondência com notícia Verdadeira", f"{real_prob * 100:.2f}%")
 
 # Informações sobre o projeto
 with st.expander("ℹ️ Sobre este projeto"):
@@ -91,7 +112,7 @@ with st.expander("ℹ️ Sobre este projeto"):
     O modelo analisa padrões linguísticos e palavras-chave presentes em notícias 
     previamente classificadas como verdadeiras ou falsas.
     
-    **Desenvolvido por:** [Nomes do Grupo]
+    **Desenvolvido por:** Veritas-SP
     """)
 
 # Rodapé
