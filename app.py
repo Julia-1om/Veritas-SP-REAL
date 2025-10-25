@@ -88,7 +88,7 @@ if st.button("Analisar Notícia 🔍", type="primary", use_container_width=True)
             elif 0.5 <= fake_prob < 0.8:
                 st.warning("**⚠️ POTENCIALMENTE REAL — verificar manualmente**")
                 st.progress(real_prob)
-                st.info("Este texto está na faixa 50%–80% — classificado como potencialmente fake (recomendado: checar fontes).")
+                st.info("Este texto está na faixa 50%–80% — classificado como potencialmente real (recomendado: checar fontes).")
             else:
                 st.success("**✅ ALTA CONFIABILIDADE**")
                 st.progress(real_prob)
@@ -118,3 +118,4 @@ with st.expander("ℹ️ Sobre este projeto"):
 # Rodapé
 st.markdown("---")
 st.caption("⚠️ Este é um protótipo para fins educacionais. Sempre verifique informações em fontes confiáveis.")
+
